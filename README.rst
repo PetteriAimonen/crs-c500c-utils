@@ -18,11 +18,13 @@ The controller itself runs some kind of embedded Unix-alike called CROS. It
 can be accessed by the serial port on the front of the device with default
 baudrate of 57600 bps.
 
-The controller has both a nvram-based filesystem backed up by a 3.6V lithium
-battery, and a flash memory that is used to initialize the filesystem if the
-backup battery fails. By holding down F1, F2 and P/C buttons down while booting
-the device goes into diagnostic mode that allows transferring flash and nvram
-contents to/from PC using XMODEM protocol.
+The controller has firmware filesystem in 1 MB flash, which is not written to
+in operation. A 512 KB RAM-based filesystem backed up by 3.6V lithium battery
+is overlaid on it, and user files are stored here. By holding down F1, F2 and
+P/C buttons down while booting the device goes into diagnostic mode that allows
+transferring flash and nvram contents to/from PC using a simple protocol that
+resembles XMODEM but doesn't seem compatible. See bootloader_download.py in
+file_transfer folder.
 
 In the filesystem there is available a few useful tools, such as `r3c` compiler
 for the RAPL-3 language and `edit` as a simple line editor.
