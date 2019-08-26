@@ -65,7 +65,7 @@
   <definitions>
 
     <!--regexs-->
-    <define-regex id="preproc-start">^\s*.\s*</define-regex>
+    <define-regex id="preproc-start">^\s*\.\s*</define-regex>
     <define-regex id="escaped-character" extended="true">
       \\(                   # leading backslash
       [\\\"\'nrbtfav\?] |   # escaped character
@@ -289,7 +289,6 @@
         <keyword>do_something</keyword>
         <keyword>dup</keyword>
         <keyword>dup2</keyword>
-        <keyword>elseif</keyword>
         <keyword>environ</keyword>
         <keyword>err_compare</keyword>
         <keyword>err_compose</keyword>
@@ -353,7 +352,6 @@
         <keyword>homezc</keyword>
         <keyword>hsw_offset_get</keyword>
         <keyword>iabs</keyword>
-        <keyword>if</keyword>
         <keyword>inbounds</keyword>
         <keyword>input</keyword>
         <keyword>inputs</keyword>
