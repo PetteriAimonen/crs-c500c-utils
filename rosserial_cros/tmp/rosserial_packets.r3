@@ -1,7 +1,14 @@
+.ifndef ROSSERIAL_PACKETS_INCLUDED
+.define ROSSERIAL_PACKETS_INCLUDED
+
+.ifndef ROSSERIAL_MAXPACKETLEN
+.define ROSSERIAL_MAXPACKETLEN 256
+.endif
+
 typedef rosserial_packet struct
     int msg_len
     int topic_id
-    string[256] msg_data
+    string[ROSSERIAL_MAXPACKETLEN] msg_data
 end struct
 
 func rosserial_checksum(string[] value, int startidx, int endidx, int prev_checksum)
@@ -13,7 +20,7 @@ func rosserial_checksum(string[] value, int startidx, int endidx, int prev_check
     return 255 - (sum & 255)
 end func
 
-sub rosserial_send_packet(int fd, rosserial_packet p)
+sub rosserial_send_packet(int fd, var rosserial_packet p)
     string[8] hdr
     str_len_set(hdr, 7)
     str_chr_set(hdr, 0, 0xFF)
@@ -63,7 +70,7 @@ func rosserial_recv_packet(int fd, var rosserial_packet p)
         return -4
     end if
     
-    if p.msg_len > 256 then
+    if p.msg_len > ROSSERIAL_MAXPACKETLEN then
         return -5
     end if
     
@@ -89,4 +96,4 @@ func rosserial_recv_packet(int fd, var rosserial_packet p)
     return 0
 end func
 
-
+.endif

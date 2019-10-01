@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>rosserial_cros</name>
+  <version>0.0.0</version>
+  <description>rosserial module for Thermo CRS C500C CROS RAPL-3 based robot controllers</description>
+  <maintainer email="jpa@git.mail.kapsi.fi">Petteri Aimonen</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
