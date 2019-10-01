@@ -15,8 +15,13 @@ do
     echo uudecode > $TMP
     uuencode $var $var >> $TMP 
     screen -X readreg p $TMP
+    sleep 1
+    screen -X stuff ^M
+    sleep 1
     screen -X paste p
+    sleep 1
+    screen -X stuff ^M
+    sleep 1
 done
 
-rm $TMP
 

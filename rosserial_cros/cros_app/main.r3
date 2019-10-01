@@ -3,13 +3,11 @@
 const TOPICID_TEST = 256
 
 main
-    int fd
     int msg_len
     int offset
     int topic_id
-    int prevtime[2]
-    int nowtime[2]
-    rosserial_packet p
+    int[2] prevtime
+    int[2] nowtime
     
     mtime(&prevtime)
     
@@ -24,20 +22,22 @@ main
             ;; Request for topic list
             printf("Sending topic list\n")
             rosserial_publish(TOPICID_TEST, "/test", "std_msgs/String", "992ce8a1687cec8c8bd883ec73ca41d1")
-        else if msg_len > 0 then
+        elseif msg_len > 0 then
             printf("Got message for topic {}, len {}\n", topic_id, msg_len)
         else
-            mdelay(10)
+            delay(10)
         end if
         
         rosserial_end_read_packet(msg_len)
         
         mtime(&nowtime)
         
-        if nowtime[0] > prevtime[0] + 1000 then
+        if nowtime[0] > prevtime[0] + 10000 then
             printf("Sending test message\n")
-            int offset = rosserial_start_packet()
+            offset = rosserial_start_packet(TOPICID_TEST)
+            printf("Offset1 {}\n", offset)
             offset = rosmsg_write_string(g_rosserial_txfifo, offset, "Testing!")
+            printf("Offset2 {}\n", offset)
             rosserial_end_packet(offset)
             
             mtime(&prevtime)
