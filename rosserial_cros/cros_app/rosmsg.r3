@@ -153,4 +153,12 @@ func int rosmsg_read_string(var string[] inbuf, int offset, var string[] value)
     return offset + len
 end func
 
+func int rosmsg_write_header(var string[] outbuf, int offset, int seq, int[2] timestamp, string[] frame_id)
+    offset = rosmsg_write_int32(outbuf, offset, seq)
+    offset = rosmsg_write_int32(outbuf, offset, timestamp[0])
+    offset = rosmsg_write_int32(outbuf, offset, timestamp[1])
+    offset = rosmsg_write_string(outbuf, offset, frame_id)
+    return offset
+end func
+
 .endif
