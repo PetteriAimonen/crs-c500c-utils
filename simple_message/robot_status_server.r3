@@ -37,9 +37,15 @@ sub send_joint_position(int fd)
     packet.replytype = 0 ;; ReplyType 0=INVALID
     packet.sequence = 0  ;; Sequence is not used for status reports
 
-    for i = 0 to 7
-        packet.joints[i] = joint_angles[i] * deg_to_rad
-    end for
+    ;; This is designed to be used with the KUKA KR3 model on ROS side,
+    ;; which is dimensionally equivalent but rotation angles are
+    ;; reversed compared to CRS F3 representation.
+    packet.joints[0] = -joint_angles[0] * deg_to_rad
+    packet.joints[1] = -joint_angles[1] * deg_to_rad
+    packet.joints[2] = -joint_angles[2] * deg_to_rad
+    packet.joints[3] = -joint_angles[3] * deg_to_rad
+    packet.joints[4] = -joint_angles[4] * deg_to_rad
+    packet.joints[5] = -joint_angles[5] * deg_to_rad
     
     write(fd, &packet, sizeof(packet))
 end sub
