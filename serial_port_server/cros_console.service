@@ -1,5 +1,6 @@
 # Systemd service file for Thermo CRS C500 serial port server
 # Install to ~/.config/systemd/user/
+# Enable with systemctl --user enable cros_console
 #
 # Connects CROS console serial port to TCP port 11010.
 # The listener allows multiple connections, any can write to terminal and
@@ -9,7 +10,12 @@
 Description=CROS Console Serial Port
 
 [Service]
-ExecStartPre=/bin/stty -F /dev/ttyS0 57600 cs8 -cstopb -parenb -echo -echoe -echok
-ExecStart=/usr/bin/ncat -l -k localhost 11010 </dev/ttyUSB0 >/dev/ttyUSB0
+ExecStartPre=/bin/stty -F /dev/ttyUSB0 57600 cs8 -cstopb -parenb -echo -echoe -echok -icanon -isig -opost -onlcr onocr -icrnl -ixon -ixoff
+ExecStart=/usr/bin/ncat -l -k localhost 11010
+StandardInput=tty
+StandardOutput=tty
+StandardError=journal
+TTYPath=/dev/ttyUSB0
 
-
+[Install]
+WantedBy=default.target

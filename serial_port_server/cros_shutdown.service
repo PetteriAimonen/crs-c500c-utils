@@ -1,0 +1,14 @@
+# Systemd service file to shutdown C500 on PC shutdown.
+# Install to ~/.config/systemd/user/
+# Enable with systemctl --user enable cros_shutdown
+
+[Unit]
+Description=Shutdown CROS
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+ExecStop=/bin/bash -c 'echo shutdown | netcat localhost 11010'
+
+[Install]
+WantedBy=default.target
