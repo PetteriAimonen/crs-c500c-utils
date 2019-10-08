@@ -107,7 +107,7 @@ main
     int fd
     int seq = 0
     
-    open(fd, "/dev/sio0", O_RDWR | O_BINARY, 0)
+    open(fd, "/dev/sio1", O_RDWR | O_BINARY, 0)
     
     sio_ioctl_conf serial_conf
     ioctl(fd, IOCTL_GETC, &serial_conf)

@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: kuka_kr3_support
+    relative_path: urdf/kr3.xacro
+    xacro_args: ""
+  SRDF:
+    relative_path: config/kuka_kr3.srdf
+  CONFIG:
+    author_name: Petteri Aimonen
+    author_email: jpa@ros.mail.kapsi.fi
+    generated_timestamp: 1570549755

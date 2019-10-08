@@ -61,8 +61,8 @@ sub write_packet(int fd, void @buf, int nwords)
     hdr[1] = nwords * 4
     
     hdr[0] |= checksum(buf, nwords) << 24
-    write_with_delay(fd, &hdr, 2)
-    write_with_delay(fd, buf, nwords)
+    write(fd, &hdr, 2)
+    write(fd, buf, nwords)
 end sub
 
 .endif
