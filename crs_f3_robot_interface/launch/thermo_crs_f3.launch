@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="crs_f3_robot_interface" type="serial_port_server.py" name="robot_state_serial_port_server"
+        args="/dev/ttyS0 57600 11002" />
+
+  <node pkg="crs_f3_robot_interface" type="serial_port_server.py" name="robot_motion_serial_port_server"
+        args="/dev/ttyS1 57600 11000" />
+
+  <include file="$(find kuka_kr3_support)/launch/load_kr3.launch" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <include file="$(find industrial_robot_client)/launch/robot_interface_streaming.launch">
+    <arg name="robot_ip" value="127.0.0.1"/>
+  </include>
+
+<!--  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find industrial_robot_client)/config/robot_state_visualize.rviz" required="true" /> -->
+</launch>
+
+

@@ -1,0 +1,10 @@
+# Systemd service file to launch ROS
+
+[Unit]
+Description=Robot Operating System
+
+[Service]
+ExecStart=/bin/bash -c 'cd /home/robokasi/ros_workspace; source devel/setup.bash; roslaunch crs_f3_robot_interface thermo_crs_f3.launch'
+
+[Install]
+WantedBy=default.target

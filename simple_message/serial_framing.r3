@@ -31,6 +31,29 @@ func int checksum(void @buf, int nwords)
     return sum & 255
 end func
 
+;; It seems there is something wrong with how CROS handles serial port
+;; writing. If a lot of data is written at once, some of it gets dropped
+;; occassionally. This function waits 1 ms between every word to keep
+;; FIFO fill level low enough. At 57600 bps, 1 word should take about
+;; 0.8 ms on the serial line.
+sub write_with_delay(int fd, void @buf, int nwords)
+    union
+        int@ p
+        int pval
+    end union tmp
+    
+    int len
+    
+    tmp.p = buf
+    
+    while nwords > 0
+        len = write(fd, tmp.p, 1)
+        tmp.pval += len
+        nwords -= len
+        delay(1)
+    end while
+end sub
+
 sub write_packet(int fd, void @buf, int nwords)
     int[2] hdr
     int wrlen = 0
@@ -38,12 +61,8 @@ sub write_packet(int fd, void @buf, int nwords)
     hdr[1] = nwords * 4
     
     hdr[0] |= checksum(buf, nwords) << 24
-    wrlen = write(fd, &hdr, 2)
-    wrlen += write(fd, buf, nwords)
-    
-    if wrlen != nwords + 2 then
-        printf("Failed write, wrote only {} of {}\n", wrlen, nwords)
-    end if
+    write_with_delay(fd, &hdr, 2)
+    write_with_delay(fd, buf, nwords)
 end sub
 
 .endif

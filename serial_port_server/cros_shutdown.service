@@ -8,7 +8,7 @@ Description=Shutdown CROS
 [Service]
 Type=oneshot
 RemainAfterExit=true
-ExecStop=/bin/bash -c 'echo shutdown | netcat localhost 11010'
+ExecStop=/bin/bash -c 'echo -e "\x05\n\nshutdown\n" | timeout 1 netcat localhost 11010 || true'
 
 [Install]
 WantedBy=default.target

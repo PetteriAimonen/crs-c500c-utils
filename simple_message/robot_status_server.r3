@@ -111,7 +111,7 @@ main
     
     sio_ioctl_conf serial_conf
     ioctl(fd, IOCTL_GETC, &serial_conf)
-    serial_conf.baud = 38400
+    serial_conf.baud = 57600
     serial_conf.OutxCtsFlow = 1
     serial_conf.OutxDsrFlow = 1
     serial_conf.DtrControl = 1
@@ -122,11 +122,10 @@ main
     serial_conf.fifotrig = 2
     ioctl(fd, IOCTL_PUTC, &serial_conf)
     
-    while 1==1
-        msleep(40)
-        
+    while 1==1        
         send_joint_position(fd)
         send_status(fd)
+        
         printf("Sent packet {}\n", seq)
         seq += 1
     end while

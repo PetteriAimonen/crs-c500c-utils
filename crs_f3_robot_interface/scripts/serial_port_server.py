@@ -23,7 +23,7 @@ class SerialPortServer:
         self.socket.bind((hostname, tcp_port))
         self.socket.listen(5)
         
-        self.serial = serial.Serial(port = serial_port, baudrate = baudrate) #, rtscts = True)
+        self.serial = serial.Serial(port = serial_port, baudrate = baudrate, rtscts = True)
         self.rx_packet = ''
     
     def handle_serial(self):
@@ -61,8 +61,9 @@ class SerialPortServer:
             checksum = sum(map(ord, payload)) & 255
             
             if checksum != ord(self.rx_packet[3]):
-                sys.stderr.write("Checksum in packet 0x%02x, actual 0x%02x\n",
-                                 ord(self.rx_packet[3]), checksum)
+                sys.stderr.write("Checksum in packet 0x%02x, actual 0x%02x, data %s\n" %
+                                 (ord(self.rx_packet[3]), checksum, 
+                                  ' '.join('%02x' % ord(x) for x in payload)))
                 self.rx_packet = self.rx_packet[3:]
                 return
             
