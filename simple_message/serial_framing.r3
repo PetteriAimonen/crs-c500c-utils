@@ -31,29 +31,7 @@ func int checksum(void @buf, int nwords)
     return sum & 255
 end func
 
-;; It seems there is something wrong with how CROS handles serial port
-;; writing. If a lot of data is written at once, some of it gets dropped
-;; occassionally. This function waits 1 ms between every word to keep
-;; FIFO fill level low enough. At 57600 bps, 1 word should take about
-;; 0.8 ms on the serial line.
-sub write_with_delay(int fd, void @buf, int nwords)
-    union
-        int@ p
-        int pval
-    end union tmp
-    
-    int len
-    
-    tmp.p = buf
-    
-    while nwords > 0
-        len = write(fd, tmp.p, 1)
-        tmp.pval += len
-        nwords -= len
-        delay(1)
-    end while
-end sub
-
+;; Adds framing header and transmits packet over serial.
 sub write_packet(int fd, void @buf, int nwords)
     int[2] hdr
     int wrlen = 0
@@ -64,5 +42,66 @@ sub write_packet(int fd, void @buf, int nwords)
     write(fd, &hdr, 2)
     write(fd, buf, nwords)
 end sub
+
+;; Reads framing header and packet payload.
+;; Function returns packet length.
+;; If packet does not fit in buffer or fails checksum,
+;; it is skipped and this returns 0.
+func read_packet(int fd, void @buf, int bufsize)
+    string[2] framing
+    int frame1 = 0, frame2 = 0, expected_checksum = 0, actual_checksum = 0
+    int rdlen = 0, packet_length = 0
+    
+    ;; Wait for 0xFF 0xFE sequence
+    do
+        rdlen = reads(fd, framing, 1)
+        frame2 = frame1
+        frame1 = str_chr_get(framing, 0)
+    until rdlen != 1 or (frame1 == 0xFE && frame2 == 0xFF)
+    
+    if rdlen != 1 then
+        printf("Read error: {}\n", rdlen);
+        return 0
+    end if
+    
+    ;; Read packet checksum
+    rdlen = reads(fd, framing, 1)
+    if rdlen != 1 then
+        printf("Read error: {}\n", rdlen);
+        return 0
+    end if
+    expected_checksum = str_chr_get(framing, 0)
+    
+    ;; Read packet length
+    rdlen = read(fd, &packet_length, 1)
+    if rdlen != 1 then
+        printf("Read error: {}\n", rdlen);
+        return 0
+    end if
+    
+    packet_length = (packet_length + 3) / 4
+    
+    if packet_length > bufsize then
+        printf("Too long packet: {} bytes\n", packet_length)
+        return 0
+    end if
+    
+    ;; Read payload
+    rdlen = read(fd, buf, packet_length)
+    if rdlen != packet_length then
+        printf("Read error: {}\n", rdlen);
+        return 0
+    end if
+    
+    ;; Verify checksum
+    actual_checksum = checksum(buf, packet_length)
+    if actual_checksum != expected_checksum then
+        printf("Checksum failure: {} in header, {} calculated\n",
+               expected_checksum, actual_checksum)
+        return 0
+    end if
+    
+    return packet_length
+end func
 
 .endif
