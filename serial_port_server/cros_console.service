@@ -10,12 +10,12 @@
 Description=CROS Console Serial Port
 
 [Service]
-ExecStartPre=/bin/stty -F /dev/ttyUSB0 57600 cs8 -cstopb -parenb -echo -echoe -echok -icanon -isig -opost -onlcr onocr -icrnl -ixon -ixoff
 ExecStart=/usr/bin/ncat -l -k localhost 11010
+ExecStartPost=/bin/stty -F /dev/ttyUSB2 57600 cs8 -cstopb -parenb -echo -echoe -echok -icanon -isig -opost -onlcr onocr -icrnl -ixon -ixoff crtscts
 StandardInput=tty
 StandardOutput=tty
 StandardError=journal
-TTYPath=/dev/ttyUSB0
+TTYPath=/dev/ttyUSB2
 
 [Install]
 WantedBy=default.target

@@ -34,10 +34,8 @@ end func
 ;; Adds framing header and transmits packet over serial.
 sub write_packet(int fd, void @buf, int nwords)
     int[2] hdr
-    int wrlen = 0
     hdr[0] = 0x00FEFFFF
     hdr[1] = nwords * 4
-    
     hdr[0] |= checksum(buf, nwords) << 24
     write(fd, &hdr, 2)
     write(fd, buf, nwords)

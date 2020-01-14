@@ -107,11 +107,11 @@ main
     int fd
     int seq = 0
     
-    open(fd, "/dev/sio1", O_RDWR | O_BINARY, 0)
+    open(fd, "/dev/sio0", O_RDWR | O_BINARY, 0)
     
     sio_ioctl_conf serial_conf
     ioctl(fd, IOCTL_GETC, &serial_conf)
-    serial_conf.baud = 57600
+    serial_conf.baud = 115200
     serial_conf.OutxCtsFlow = 1
     serial_conf.OutxDsrFlow = 1
     serial_conf.DtrControl = 1
@@ -126,7 +126,7 @@ main
         send_joint_position(fd)
         send_status(fd)
         
-        printf("Sent packet {}\n", seq)
+        delay(10)
         seq += 1
     end while
 end main
