@@ -1,16 +1,34 @@
 <?xml version="1.0"?>
 <launch>
+<!--  <env name="ROSCONSOLE_CONFIG_FILE"
+       value="$(find crs_f3_moveit_config)/config/rosconsole_debug.conf"/> -->
+       
+  <rosparam command="load" file="$(find crs_f3_moveit_config)/config/joint_names.yaml"/>
+
   <node pkg="crs_f3_robot_interface" type="serial_port_server.py" name="robot_state_serial_port_server"
         args="/dev/ttyUSB0 115200 11002" />
 
   <node pkg="crs_f3_robot_interface" type="serial_port_server.py" name="robot_motion_serial_port_server"
         args="/dev/ttyUSB1 115200 11000" />
+    
+  <include file="$(find crs_f3_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
 
-  <include file="$(find kuka_kr3_support)/launch/load_kr3.launch" />
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
 
   <include file="$(find industrial_robot_client)/launch/robot_interface_streaming.launch">
     <arg name="robot_ip" value="127.0.0.1"/>
+  </include>
+
+  <include file="$(find crs_f3_moveit_config)/launch/kuka_kr3_moveit_controller_manager.launch.xml">
+  </include>
+
+  <include file="$(find crs_f3_moveit_config)/launch/move_group.launch">
+    <arg name="allow_trajectory_execution" value="true"/>
+    <arg name="info" value="true"/>
+    <arg name="debug" value="false"/>
+    <arg name="pipeline" value="ompl"/>
   </include>
 
 <!--  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find industrial_robot_client)/config/robot_state_visualize.rviz" required="true" /> -->

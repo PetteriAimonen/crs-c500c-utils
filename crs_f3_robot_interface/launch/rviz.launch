@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <launch>
 
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find industrial_robot_client)/config/robot_state_visualize.rviz" required="true" />
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find industrial_robot_client)/config/robot_state_visualize.rviz" required="true" /> -->
+  <include file="$(find crs_f3_moveit_config)/launch/moveit_rviz.launch">
+    <arg name="rviz_config" value="$(find crs_f3_moveit_config)/launch/moveit.rviz"/>
+    <arg name="debug" value="false"/>
+  </include>
 </launch>

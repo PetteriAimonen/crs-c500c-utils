@@ -45,7 +45,7 @@ end sub
 ;; Function returns packet length.
 ;; If packet does not fit in buffer or fails checksum,
 ;; it is skipped and this returns 0.
-func read_packet(int fd, void @buf, int bufsize)
+func int read_packet(int fd, void @buf, int bufsize)
     string[2] framing
     int frame1 = 0, frame2 = 0, expected_checksum = 0, actual_checksum = 0
     int rdlen = 0, packet_length = 0
@@ -58,14 +58,14 @@ func read_packet(int fd, void @buf, int bufsize)
     until rdlen != 1 or (frame1 == 0xFE && frame2 == 0xFF)
     
     if rdlen != 1 then
-        printf("Read error: {}\n", rdlen);
+        printf("Read error: {}\n", rdlen)
         return 0
     end if
     
     ;; Read packet checksum
     rdlen = reads(fd, framing, 1)
     if rdlen != 1 then
-        printf("Read error: {}\n", rdlen);
+        printf("Read error: {}\n", rdlen)
         return 0
     end if
     expected_checksum = str_chr_get(framing, 0)
@@ -73,7 +73,7 @@ func read_packet(int fd, void @buf, int bufsize)
     ;; Read packet length
     rdlen = read(fd, &packet_length, 1)
     if rdlen != 1 then
-        printf("Read error: {}\n", rdlen);
+        printf("Read error: {}\n", rdlen)
         return 0
     end if
     
@@ -87,7 +87,7 @@ func read_packet(int fd, void @buf, int bufsize)
     ;; Read payload
     rdlen = read(fd, buf, packet_length)
     if rdlen != packet_length then
-        printf("Read error: {}\n", rdlen);
+        printf("Read error: {}\n", rdlen)
         return 0
     end if
     

@@ -48,7 +48,6 @@ typedef request_packet_t struct
     int reply_code
     union
         ping_t ping
-        get_version_t get_version
         joint_traj_pt_t joint_traj_pt
     end union payload
     int[10] reserved
@@ -70,71 +69,36 @@ typedef reply_packet_t struct
     end union payload
 end struct
 
-
-sub send_joint_position(int fd)
-    ploc robot_pos
-    float[8] joint_angles
-    joint_position_t packet
-    float deg_to_rad
-    deg_to_rad = 3.1415926535 / 180.0
-
-    ;; Get robot position
-    loc_class_set(robot_pos, loc_precision)
-    here(robot_pos)
-    motor_to_joint(robot_pos, joint_angles)
-
-    memset(&packet, 0, sizeof(packet))
-    packet.msgtype = 10  ;; MsgType 10=JOINT_POSITION
-    packet.commtype = 1  ;; CommType 1=TOPIC
-    packet.replytype = 0 ;; ReplyType 0=INVALID
-    packet.sequence = 0  ;; Sequence is not used for status reports
-
-    ;; This is designed to be used with the KUKA KR3 model on ROS side,
-    ;; which is dimensionally equivalent but rotation angles are
-    ;; reversed compared to CRS F3 representation.
-    packet.joints[0] = -joint_angles[0] * deg_to_rad
-    packet.joints[1] = -joint_angles[1] * deg_to_rad
-    packet.joints[2] = -joint_angles[2] * deg_to_rad
-    packet.joints[3] = -joint_angles[3] * deg_to_rad
-    packet.joints[4] = -joint_angles[4] * deg_to_rad
-    packet.joints[5] = -joint_angles[5] * deg_to_rad
-    
-    write_packet(fd, &packet, sizeof(packet))
-end sub
-
-func process_trajectory_point(joint_traj_pt_t trajpt)
+func int process_trajectory_point(joint_traj_pt_t trajpt)
     ploc robot_pos
     float[8] joint_angles
     float rad_to_deg
     rad_to_deg = 180.0 / 3.1415926535
-    int status
-    int speed_percent
+    int status = 0
+    int speed_percent = 1
     static int prev_sequence = 0
 
     if trajpt.sequence == SEQ_START_TRAJECTORY_DOWNLOAD then
         printf("Trajectory download not supported!\n")
-        return false
+        return 0
     elseif trajpt.sequence == SEQ_START_TRAJECTORY_STREAMING then
         ;; This message is not currently used by ROS
-        return true
+        return 1
     elseif trajpt.sequence == SEQ_STOP_TRAJECTORY then
-        robot_abort()
-        return true
+        online(OFF)
+        return 1
     elseif trajpt.sequence >= 0
         if trajpt.sequence == 0
             ;; Start of new trajectory
-            if ctl_get() < 0 then
-                printf("Failed to get point of control.\n")
-                return false
-            end if
-            
             online(ON)
             prev_sequence = 0
         elseif trajpt.sequence != prev_sequence + 1 then
             printf("Wrong sequence number: {} after {}\n", trajpt.sequence, prev_sequence)
             robot_abort()
-            return false
+            return 0
         end if
+        
+        prev_sequence = trajpt.sequence
         
         loc_class_set(robot_pos, loc_precision)
         here(robot_pos) ;; To initialize flags & machine type
@@ -152,26 +116,26 @@ func process_trajectory_point(joint_traj_pt_t trajpt)
             speed_percent = 100
         end if
         
-        printf("Would move to {5.1} {5.1} {5.1} {5.1} {5.1} {5.1} at speed {}\n"
+        printf("Would move to {8.4} {8.4} {8.4} {8.4} {8.4} {8.4} at speed {}\n",
                joint_angles[0], joint_angles[1], joint_angles[2], 
                joint_angles[3], joint_angles[4], joint_angles[5], 
                speed_percent)
 
-        ;;speed_set(speed_percent)
-        ;;joint_to_motor(joint_angles, robot_pos)
-        ;;status = move(robot_pos)
+        speed_set(speed_percent)
+        joint_to_motor(joint_angles, robot_pos)
+        status = move(robot_pos)
         
         if status < 0 then
             printf("move() failed: {}\n", status)
-            return false
+            return 0
         end if
         
-        return true
+        return 1
     end if
 
     printf("Unknown sequence number: {}\n", trajpt.sequence)
     robot_abort()
-    return false
+    return 0
 end func
 
 sub process_single_packet(int fd)
@@ -179,6 +143,8 @@ sub process_single_packet(int fd)
     reply_packet_t reply
     int packet_len
     packet_len = read_packet(fd, &request, sizeof(request))
+
+    printf("Got packet len {}\n", packet_len)
 
     if packet_len > 0 then
         memset(&reply, 0, sizeof(reply))
@@ -196,10 +162,10 @@ sub process_single_packet(int fd)
             reply.payload.version.minor = 0
             reply.payload.version.patch = 0
             write_packet(fd, &reply, 6)
-        else if request.msg_type == MSGTYPE_JOINT_TRAJ_PT then
+        elseif request.msg_type == MSGTYPE_JOINT_TRAJ_PT then
             reply.msg_type = MSGTYPE_JOINT_TRAJ_PT
             reply.comm_type = COMMTYPE_REPLY
-            if process_trajectory_point(request.payload) then
+            if process_trajectory_point(request.payload.joint_traj_pt) then
                 reply.reply_code = REPLYTYPE_SUCCESS
             else
                 reply.reply_code = REPLYTYPE_FAILURE
@@ -211,7 +177,6 @@ end sub
 
 main
     int fd
-    int seq = 0
     
     open(fd, "/dev/sio1", O_RDWR | O_BINARY, 0)
     
@@ -228,6 +193,11 @@ main
     serial_conf.fifotrig = 2
     ioctl(fd, IOCTL_PUTC, &serial_conf)
     
+    if ctl_get() < 0 then
+        printf("Failed to get point of control.\n")
+        return 0
+    end if
+
     while 1==1
         process_single_packet(fd)
     end while
