@@ -4,6 +4,7 @@
 
 [Unit]
 Description=Shutdown CROS
+After=cros_console.service
 
 [Service]
 Type=oneshot
