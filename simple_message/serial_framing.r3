@@ -41,6 +41,9 @@ sub write_packet(int fd, void @buf, int nwords)
     write(fd, buf, nwords)
 end sub
 
+sub alarm_dummy_handler(int n)
+end sub
+
 ;; Reads framing header and packet payload.
 ;; Function returns packet length.
 ;; If packet does not fit in buffer or fails checksum,
@@ -51,21 +54,29 @@ func int read_packet(int fd, void @buf, int bufsize)
     int rdlen = 0, packet_length = 0
     
     ;; Wait for 0xFF 0xFE sequence
+    signal(SIGALRM, alarm_dummy_handler, NULL)
+    malarm(5000, SIGALRM)
     do
         rdlen = reads(fd, framing, 1)
         frame2 = frame1
         frame1 = str_chr_get(framing, 0)
     until rdlen != 1 or (frame1 == 0xFE && frame2 == 0xFF)
+    malarm(0, SIGALRM)
+    
+    if rdlen == -EINTR then
+        ;; Interrupted by signal
+        return 0
+    end if
     
     if rdlen != 1 then
-        printf("Read error: {}\n", rdlen)
+        printf("Read error before packet: {}\n", rdlen)
         return 0
     end if
     
     ;; Read packet checksum
     rdlen = reads(fd, framing, 1)
     if rdlen != 1 then
-        printf("Read error: {}\n", rdlen)
+        printf("Read error checksum: {}\n", rdlen)
         return 0
     end if
     expected_checksum = str_chr_get(framing, 0)
@@ -73,7 +84,7 @@ func int read_packet(int fd, void @buf, int bufsize)
     ;; Read packet length
     rdlen = read(fd, &packet_length, 1)
     if rdlen != 1 then
-        printf("Read error: {}\n", rdlen)
+        printf("Read error length: {}\n", rdlen)
         return 0
     end if
     
@@ -87,7 +98,7 @@ func int read_packet(int fd, void @buf, int bufsize)
     ;; Read payload
     rdlen = read(fd, buf, packet_length)
     if rdlen != packet_length then
-        printf("Read error: {}\n", rdlen)
+        printf("Read error payload: {}\n", rdlen)
         return 0
     end if
     

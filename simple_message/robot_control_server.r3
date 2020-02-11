@@ -175,8 +175,72 @@ sub process_single_packet(int fd)
     end if
 end sub
 
+typedef status_t struct
+    int msgtype
+    int commtype
+    int replytype
+    int drives_powered
+    int e_stopped
+    int errorcode
+    int in_error
+    int in_motion
+    int mode
+    int motion_possible
+end struct
+
+sub send_status(int fd)
+    status_t packet
+    int[8] axstatus
+    int i
+    
+    axis_status(axstatus)
+    
+    memset(&packet, 0, sizeof(packet))
+    packet.msgtype = 13  ;; MsgType 13=STATUS
+    packet.commtype = 1  ;; CommType 1=TOPIC
+    packet.replytype = 0 ;; ReplyType 0=INVALID
+    
+    if robotispowered() > 0 then
+        packet.drives_powered = 1
+    else
+        packet.drives_powered = 0
+    end if
+    
+    packet.e_stopped = -1
+    
+    for i = 0 to 5
+        ;; Check axis error status bits
+        if axstatus[i] & 0x4710 != 0 then
+            packet.errorcode = (axstatus[i] << 8) | (i + 1)
+            packet.in_error = 1
+        end if
+    end for
+    
+    for i = 0 to 5
+        ;; Check axis done bit
+        if axstatus[i] & 0x8000 == 0 then
+            packet.in_motion = 1
+        end if
+    end for
+    
+    packet.mode = -1 ;; Manual / automatic mode not implemented yet
+    packet.motion_possible = 1
+    
+    write_packet(fd, &packet, sizeof(packet))
+end sub
+
+sub abort_handler(int n)
+    printf("Swallowed SIGABRT\n")
+end sub
+
 main
     int fd
+    int prev_status_time = 0
+    
+    ;; SIGABRT gets send when emergency stop is activated.
+    ;; We silently swallow it to continue operation after
+    ;; emergency stop ends.
+    signal(SIGABRT, abort_handler, NULL)
     
     open(fd, "/dev/sio1", O_RDWR | O_BINARY, 0)
     
@@ -200,6 +264,11 @@ main
 
     while 1==1
         process_single_packet(fd)
+        
+        if time() > prev_status_time + 5 then
+            send_status(fd)
+            prev_status_time = time()
+        end if
     end while
 end main
 
