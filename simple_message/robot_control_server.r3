@@ -65,7 +65,8 @@ typedef reply_packet_t struct
     int reply_code
     union
         get_version_t version
-        int[10] reserved
+        joint_traj_pt_t joint_traj_pt
+        int[12] reserved
     end union payload
 end struct
 
@@ -85,12 +86,12 @@ func int process_trajectory_point(joint_traj_pt_t trajpt)
         ;; This message is not currently used by ROS
         return 1
     elseif trajpt.sequence == SEQ_STOP_TRAJECTORY then
-        online(OFF)
+        online(ONLINE_OFF)
         return 1
     elseif trajpt.sequence >= 0
         if trajpt.sequence == 0
             ;; Start of new trajectory
-            online(ON)
+            online(ONLINE_ON)
             prev_sequence = 0
         elseif trajpt.sequence != prev_sequence + 1 then
             printf("Wrong sequence number: {} after {}\n", trajpt.sequence, prev_sequence)
@@ -116,10 +117,12 @@ func int process_trajectory_point(joint_traj_pt_t trajpt)
             speed_percent = 100
         end if
         
-        printf("Would move to {8.4} {8.4} {8.4} {8.4} {8.4} {8.4} at speed {}\n",
-               joint_angles[0], joint_angles[1], joint_angles[2], 
-               joint_angles[3], joint_angles[4], joint_angles[5], 
-               speed_percent)
+        speed_percent = 20
+        
+;;        printf("Would move to {8.4} {8.4} {8.4} {8.4} {8.4} {8.4} at speed {}\n",
+;;               joint_angles[0], joint_angles[1], joint_angles[2], 
+;;               joint_angles[3], joint_angles[4], joint_angles[5], 
+;;               speed_percent)
 
         speed_set(speed_percent)
         joint_to_motor(joint_angles, robot_pos)
@@ -144,7 +147,7 @@ sub process_single_packet(int fd)
     int packet_len
     packet_len = read_packet(fd, &request, sizeof(request))
 
-    printf("Got packet len {}\n", packet_len)
+;;    printf("Got packet len {}\n", packet_len)
 
     if packet_len > 0 then
         memset(&reply, 0, sizeof(reply))
@@ -165,12 +168,13 @@ sub process_single_packet(int fd)
         elseif request.msg_type == MSGTYPE_JOINT_TRAJ_PT then
             reply.msg_type = MSGTYPE_JOINT_TRAJ_PT
             reply.comm_type = COMMTYPE_REPLY
+            reply.payload.joint_traj_pt = request.payload.joint_traj_pt
             if process_trajectory_point(request.payload.joint_traj_pt) then
                 reply.reply_code = REPLYTYPE_SUCCESS
             else
                 reply.reply_code = REPLYTYPE_FAILURE
             end if
-            write_packet(fd, &reply, 13)
+            write_packet(fd, &reply, 16)
         end if
     end if
 end sub
@@ -190,10 +194,7 @@ end struct
 
 sub send_status(int fd)
     status_t packet
-    int[8] axstatus
     int i
-    
-    axis_status(axstatus)
     
     memset(&packet, 0, sizeof(packet))
     packet.msgtype = 13  ;; MsgType 13=STATUS
@@ -207,22 +208,8 @@ sub send_status(int fd)
     end if
     
     packet.e_stopped = -1
-    
-    for i = 0 to 5
-        ;; Check axis error status bits
-        if axstatus[i] & 0x4710 != 0 then
-            packet.errorcode = (axstatus[i] << 8) | (i + 1)
-            packet.in_error = 1
-        end if
-    end for
-    
-    for i = 0 to 5
-        ;; Check axis done bit
-        if axstatus[i] & 0x8000 == 0 then
-            packet.in_motion = 1
-        end if
-    end for
-    
+    packet.in_error = 0
+    packet.in_motion = !robotisfinished()
     packet.mode = -1 ;; Manual / automatic mode not implemented yet
     packet.motion_possible = 1
     

@@ -64,10 +64,6 @@ end struct
 
 sub send_status(int fd)
     status_t packet
-    int[8] axstatus
-    int i
-    
-    axis_status(axstatus)
     
     memset(&packet, 0, sizeof(packet))
     packet.msgtype = 13  ;; MsgType 13=STATUS
@@ -81,22 +77,8 @@ sub send_status(int fd)
     end if
     
     packet.e_stopped = -1
-    
-    for i = 0 to 5
-        ;; Check axis error status bits
-        if axstatus[i] & 0x4710 != 0 then
-            packet.errorcode = (axstatus[i] << 8) | (i + 1)
-            packet.in_error = 1
-        end if
-    end for
-    
-    for i = 0 to 5
-        ;; Check axis done bit
-        if axstatus[i] & 0x8000 == 0 then
-            packet.in_motion = 1
-        end if
-    end for
-    
+    packet.in_error = 0
+    packet.in_motion = !robotisfinished()
     packet.mode = -1 ;; Manual / automatic mode not implemented yet
     packet.motion_possible = 1
     
@@ -107,6 +89,7 @@ main
     int fd
     int seq = 0
     
+    setprio(0, -1)
     open(fd, "/dev/sio0", O_RDWR | O_BINARY, 0)
     
     sio_ioctl_conf serial_conf
